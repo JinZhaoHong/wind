@@ -45,15 +45,15 @@ class Preprocessor :
                                 # Skip Line 3 since it's just the names of columns 
                                 position.append(lon)
                                 pass
-                            elif ((counter - 4) % 12 == 0) :
-                                # append the first "minute" of an hour 
+                            elif ((counter - 4) % 24 == 0) :
+                                # append the first "minute" of two hours 
                                 capacity.append(float(line.strip().split(",")[-1]))
-                            elif ((counter - 4) % 12 == 11) :
-                                # add the last "minute" of an hour and divide it by 12 to find the average
+                            elif ((counter - 4) % 24 == 23) :
+                                # add the last "minute" of two hours and divide it by 24 to find the average
                                 capacity[-1] += float(line.strip().split(",")[-1])
-                                capacity[-1] /= 12
+                                capacity[-1] /= 24
                             else :
-                                # add 2nd to 11th "minutes" of an hour
+                                # add 2nd to 23th "minutes" of two hours
                                 capacity[-1] += float(line.strip().split(",")[-1])
                         positions.append(position)
                         capacities.append(capacity)
@@ -63,44 +63,44 @@ class Preprocessor :
 
         if pca :
             optimal_d = PCA_dimension_selection(self.capacities, variance_threshold)
-            self.capacities = load_PCA_design_matrix(self.capacities)
+            self.capacities = load_PCA_design_matrix(self.capacities, optimal_d)
 
         return (self.positions, self.capacities)
 
-    def PCA_dimension_selection(matrix, variance_threshold):
-        """
-        Given a matrix, find the smallest k such that the variance threshold is retained
-        """
-        U, s, V = np.linalg.svd(matrix, full_matrices=False)
-        S = np.diag(s)
-        summation = 0.0
-        # Step 1, calculate the denominator.
-        for i in range(S.shape[0]):
-            summation += S[i][i]
-        k_array = []
-        # Step 2, use dynamic programming to calculate the cumulating k
-        for k in range(S.shape[0]):
-            if k == 0:
-                k_array.append(S[k][k])
-            else:
-                k_array.append(k_array[k-1] + S[k][k])
-            if k_array[k] / summation >= variance_threshold:
-                return k
-        return S.shape[0]
+def PCA_dimension_selection(matrix, variance_threshold):
+    """
+    Given a matrix, find the smallest k such that the variance threshold is retained
+    """
+    U, s, V = np.linalg.svd(matrix, full_matrices=False)
+    S = np.diag(s)
+    summation = 0.0
+    # Step 1, calculate the denominator.
+    for i in range(S.shape[0]):
+        summation += S[i][i]
+    k_array = []
+    # Step 2, use dynamic programming to calculate the cumulating k
+    for k in range(S.shape[0]):
+        if k == 0:
+            k_array.append(S[k][k])
+        else:
+            k_array.append(k_array[k-1] + S[k][k])
+        if k_array[k] / summation >= variance_threshold:
+            return k
+    return S.shape[0]
 
 
-    def load_PCA_design_matrix(capacities, d):
-        """
-        Generate a design matrix such that the capacity feature dimensions
-        are reduced using PCA and the distance dimensions(lat and lon) are 
-        preserved.
-        d: the dimension of the reduced space.
-        """
-        pca = PCA(n_components=d)
-        # X is the matrix transposed (n samples on the rows, m features on the columns)
-        reduced_capacities = pca.fit_transform(capacities)
-        
-        return reduced_capacities
+def load_PCA_design_matrix(capacities, d):
+    """
+    Generate a design matrix such that the capacity feature dimensions
+    are reduced using PCA and the distance dimensions(lat and lon) are 
+    preserved.
+    d: the dimension of the reduced space.
+    """
+    pca = PCA(n_components=d)
+    # X is the matrix transposed (n samples on the rows, m features on the columns)
+    reduced_capacities = pca.fit_transform(capacities)
+    
+    return reduced_capacities
 
 
 
