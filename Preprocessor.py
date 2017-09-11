@@ -3,11 +3,12 @@ import os
 import re
 import numpy as np
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import MinMaxScaler
 
 
 class Preprocessor :
         
-    def preprocess(self, folder_name = "Easter_Cape_Cod_MA", pca = True, variance_threshold = 0.9) :
+    def preprocess(self, folder_name = "Easter_Cape_Cod_MA", pca = True, variance_threshold = 0.9, scale = True) :
         '''
         Folder contains many csv files. Each csv file contains position and capacity factors of a wind point.
         preprocess returns a list of position lists of every wind points as well as 
@@ -60,6 +61,11 @@ class Preprocessor :
                         f.close()
         self.positions = np.array(positions)
         self.capacities = np.array(capacities)
+
+        if scale :
+            scaler = MinMaxScaler()
+            scaler.fit(self.capacities)
+            self.capacities = scaler.transform(self.capacities)
 
         if pca :
             optimal_d = PCA_dimension_selection(self.capacities, variance_threshold)
